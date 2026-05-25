@@ -3,11 +3,15 @@
  */
 import * as ed25519 from '@noble/ed25519'
 
-// browser MUST provide "crypto.getRandomValues"
+// browser MUST provide "crypto.getRandomValues" and "crypto.subtle"
 const crypto = globalThis.crypto
 if (typeof crypto.getRandomValues === 'undefined') {
   throw new Error('Environment does not provide "crypto.getRandomValues".')
 }
+
+// configure sha512 for noble/ed25519 v3 using WebCrypto
+ed25519.hashes.sha512Async = async (msg: Uint8Array) =>
+  new Uint8Array(await crypto.subtle.digest('SHA-512', msg))
 
 interface EdKeyPair {
   publicKey: Uint8Array
@@ -26,18 +30,18 @@ export default {
   generateKeyPairFromSeed,
 
   async sign(
-    secretKey: Uint8Array | string,
-    data: Uint8Array | string
+    secretKey: Uint8Array,
+    data: Uint8Array
   ): Promise<Uint8Array> {
-    return ed25519.sign(data, secretKey.slice(0, 32))
+    return ed25519.signAsync(data, secretKey.slice(0, 32))
   },
 
   async verify(
-    publicKey: Uint8Array | string,
-    data: Uint8Array | string,
-    signature: Uint8Array | string
+    publicKey: Uint8Array,
+    data: Uint8Array,
+    signature: Uint8Array
   ): Promise<boolean> {
-    return ed25519.verify(signature, data, publicKey)
+    return ed25519.verifyAsync(signature, data, publicKey)
   },
 
   async sha256digest(data: Uint8Array): Promise<ArrayBuffer> {
@@ -46,7 +50,7 @@ export default {
 }
 
 async function generateKeyPairFromSeed(seed: Uint8Array): Promise<EdKeyPair> {
-  const publicKey = await ed25519.getPublicKey(seed)
+  const publicKey = await ed25519.getPublicKeyAsync(seed)
   const secretKey = new Uint8Array(64)
   secretKey.set(seed)
   secretKey.set(publicKey, seed.length)

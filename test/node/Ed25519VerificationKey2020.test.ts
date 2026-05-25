@@ -3,7 +3,7 @@
  */
 import { describe, it, expect } from 'vitest'
 import { base58btc } from '../../src/baseX.js'
-import { mockKey, seed } from './mock-data.js'
+import { mockKey, seed, suites } from './mock-data.js'
 import * as multibase from 'multibase'
 import * as multicodec from 'multicodec'
 import { Ed25519VerificationKey2020 } from '../../src/index.js'
@@ -87,9 +87,65 @@ describe('Ed25519VerificationKey2020', () => {
     })
   })
 
-  describe('export', () => {
+  describe('export (Multikey)', () => {
+    it('should export as Multikey by default', async () => {
+      const seedBytes = new TextEncoder().encode(seed).slice(0, 32)
+      const keyPair = await Ed25519VerificationKey2020.generate({
+        seed: seedBytes,
+        controller: 'did:example:1234'
+      })
+      const exported = keyPair.export({ publicKey: true, secretKey: true })
+
+      expect(exported.type).toBe('Multikey')
+      expect(exported['@context']).toBe('https://w3id.org/security/multikey/v1')
+      expect(exported.controller).toBe('did:example:1234')
+      expect(exported.publicKeyMultibase).toBe(
+        'z6Mkpw72M9suPCBv48X2Xj4YKZJH9W7wzEK1aS6JioKSo89C'
+      )
+      // default (non-canonical) secretKeyMultibase is 66 bytes (2 header + 64
+      // seed||pub), matching @digitalbazaar/ed25519-multikey
+      const secretMulticodec = base58btc.decode(exported.secretKeyMultibase!.slice(1))
+      expect(secretMulticodec.length).toBe(66)
+    })
+
+    it('should export a canonical 32-byte secret when canonicalize is true', async () => {
+      const seedBytes = new TextEncoder().encode(seed).slice(0, 32)
+      const keyPair = await Ed25519VerificationKey2020.generate({
+        seed: seedBytes,
+        controller: 'did:example:1234'
+      })
+      const exported = keyPair.export({
+        publicKey: true,
+        secretKey: true,
+        canonicalize: true
+      })
+
+      // canonical secretKeyMultibase is 34 bytes (2 header + 32 seed)
+      const secretMulticodec = base58btc.decode(exported.secretKeyMultibase!.slice(1))
+      expect(secretMulticodec.length).toBe(34)
+      expect(exported.secretKeyMultibase).toBe(
+        'z3u2V1vM4u3wUmcB8M77WQWmMvscQpPAtdpj7iEJRGpzoMtg'
+      )
+    })
+
+    it('default export() args include publicKey and context', async () => {
+      const keyPair = await Ed25519VerificationKey2020.generate({
+        id: 'did:ex:123#test-id'
+      })
+      const exported = keyPair.export()
+
+      expect(Object.keys(exported).sort()).toEqual(
+        ['@context', 'id', 'type', 'publicKeyMultibase'].sort()
+      )
+      expect(exported.id).toBe('did:ex:123#test-id')
+      expect(exported.type).toBe('Multikey')
+    })
+
+  })
+
+  describe('toVerificationKey2020', () => {
     it('should export id, type and key material', async () => {
-      // Encoding returns a 64 byte uint8array, seed needs to be 32 bytes
+      // Encoding returns a 64 byte Uint8Array, seed needs to be 32 bytes
       const seedBytes = new TextEncoder().encode(seed).slice(0, 32)
       const keyPair = await Ed25519VerificationKey2020.generate({
         seed: seedBytes,
@@ -99,7 +155,7 @@ describe('Ed25519VerificationKey2020', () => {
         .toISOString()
         .replace(/\.[0-9]{3}/, '')
       keyPair.revoked = pastDate
-      const exported = await keyPair.export({
+      const exported = keyPair.toVerificationKey2020({
         publicKey: true,
         privateKey: true
       })
@@ -127,7 +183,7 @@ describe('Ed25519VerificationKey2020', () => {
       const keyPair = await Ed25519VerificationKey2020.generate({
         id: 'did:ex:123#test-id'
       })
-      const exported = await keyPair.export({ publicKey: true })
+      const exported = keyPair.toVerificationKey2020({ publicKey: true })
 
       expect(Object.keys(exported).sort()).toEqual(
         ['id', 'type', 'publicKeyMultibase'].sort()
@@ -148,23 +204,136 @@ describe('Ed25519VerificationKey2020', () => {
   })
 
   describe('static from', () => {
-    it('should round-trip load exported keys', async () => {
+    it('should round-trip load exported keys (2020 format)', async () => {
       // Encoding returns a 64 byte uint8array, seed needs to be 32 bytes
       const seedBytes = new TextEncoder().encode(seed).slice(0, 32)
       const keyPair = await Ed25519VerificationKey2020.generate({
         seed: seedBytes,
         controller: 'did:example:1234'
       })
-      const exported = await keyPair.export({
+      const exported = keyPair.toVerificationKey2020({
         publicKey: true,
         privateKey: true
       })
       const imported = await Ed25519VerificationKey2020.from(exported)
 
       expect(
-        await imported.export({ publicKey: true, privateKey: true })
+        imported.toVerificationKey2020({ publicKey: true, privateKey: true })
       ).toEqual(exported)
     })
+
+    it('should round-trip via Multikey export from() to sign/verify', async () => {
+      const keyPair = await Ed25519VerificationKey2020.generate({
+        controller: 'did:example:multikey'
+      })
+      // Export as Multikey (default 64-byte secret)
+      const multikeyDoc = keyPair.export({ publicKey: true, secretKey: true })
+      expect(multikeyDoc.type).toBe('Multikey')
+
+      // Re-import via from()
+      const imported = await Ed25519VerificationKey2020.from(multikeyDoc)
+      expect(imported.publicKeyMultibase).toBe(keyPair.publicKeyMultibase)
+
+      // Confirm sign/verify works after the 32 to 64 byte re-concat
+      const data = new TextEncoder().encode('multikey round-trip test')
+      const signer = imported.signer()
+      const signature = await signer.sign({ data })
+      const result = await keyPair.verifier().verify({ data, signature })
+      expect(result).toBe(true)
+    })
+
+    it('from() ingests a Multikey document with 64-byte legacy secret', async () => {
+      const keyPair = await Ed25519VerificationKey2020.generate({
+        controller: 'did:example:legacy'
+      })
+      // Build a legacy Multikey document by reusing the internal 64-byte
+      // privateKeyMultibase directly as secretKeyMultibase.
+      const legacyMultikey = {
+        type: 'Multikey' as const,
+        controller: 'did:example:legacy',
+        publicKeyMultibase: keyPair.publicKeyMultibase,
+        secretKeyMultibase: keyPair.privateKeyMultibase!
+      }
+      const secretMulticodec = base58btc.decode(legacyMultikey.secretKeyMultibase.slice(1))
+      expect(secretMulticodec.length).toBe(66) // 2 header + 64
+
+      const imported = await Ed25519VerificationKey2020.from(legacyMultikey)
+      const data = new TextEncoder().encode('legacy multikey test')
+      const signature = await imported.signer().sign({ data })
+      const result = await keyPair.verifier().verify({ data, signature })
+      expect(result).toBe(true)
+    })
+
+    it('from() with Multikey ingests public-key-only documents', async () => {
+      const keyPair = await Ed25519VerificationKey2020.generate({
+        controller: 'did:example:pubonly'
+      })
+      const publicOnlyMultikey = keyPair.export({ publicKey: true })
+      expect(publicOnlyMultikey.secretKeyMultibase).toBeUndefined()
+
+      const imported = await Ed25519VerificationKey2020.from(publicOnlyMultikey)
+      expect(imported.publicKeyMultibase).toBe(keyPair.publicKeyMultibase)
+      expect(imported.privateKeyMultibase).toBeUndefined()
+    })
+  })
+
+  describe('sign and verify', () => {
+    // The same Ed25519 signature must be produced on every platform and by
+    // every interoperable implementation (this value is byte-identical to the
+    // one produced by @digitalbazaar/ed25519-multikey for the same key).
+    const targetSignatureBase58 =
+      '25fgrioJMRbKuq4sGz2Ngh6K7GuonRTUAzRk7asgvnVA2W' +
+      'YSHtLBPX1BXiTtMqTwen7MKgQfbMpm6N6vgDc7VDF9'
+
+    it('produces a known-answer signature and verifies it', async () => {
+      const keyPair = await Ed25519VerificationKey2020.from({
+        controller: 'did:example:1234',
+        ...mockKey
+      })
+      const signer = keyPair.signer()
+      const verifier = keyPair.verifier()
+      expect(signer.id).toBe(
+        'did:example:1234#z6MknCCLeeHBUaHu4aHSVLDCYQW9gjVJ7a63FpMvtuVMy53T'
+      )
+      expect(verifier.id).toBe(
+        'did:example:1234#z6MknCCLeeHBUaHu4aHSVLDCYQW9gjVJ7a63FpMvtuVMy53T'
+      )
+      const data = new TextEncoder().encode('test 1234')
+      const signature = await signer.sign({ data })
+      expect(base58btc.encode(signature)).toBe(targetSignatureBase58)
+      const result = await verifier.verify({ data, signature })
+      expect(result).toBe(true)
+    })
+
+    it('fails to verify if the signed data is changed', async () => {
+      const keyPair = await Ed25519VerificationKey2020.from({
+        controller: 'did:example:1234',
+        ...mockKey
+      })
+      const signer = keyPair.signer()
+      const data = new TextEncoder().encode('test 1234')
+      const signature = await signer.sign({ data })
+      const changedData = new TextEncoder().encode('test 4321')
+      const result = await keyPair
+        .verifier()
+        .verify({ data: changedData, signature })
+      expect(result).toBe(false)
+    })
+
+    // Verify signatures produced by this library in other environments
+    // (node, browser) to lock cross-platform interop.
+    for (const suite of suites) {
+      it(suite.title, async () => {
+        const keyPair = await Ed25519VerificationKey2020.from({
+          controller: 'did:example:1234',
+          ...suite.key
+        })
+        const data = new TextEncoder().encode(suite.data)
+        const signature = base58btc.decode(suite.signature)
+        const result = await keyPair.verifier().verify({ data, signature })
+        expect(result).toBe(true)
+      })
+    }
   })
 
   describe('fingerprint', () => {
@@ -266,51 +435,48 @@ describe('Ed25519VerificationKey2020', () => {
     })
   })
 
-  describe.skip('JsonWebKey2020', () => {
-    it('round trip imports/exports', async () => {
-      const keyData = {
-        '@context': 'https://w3id.org/security/jws/v1',
-        id: 'did:example:123#kPrK_qmxVWaYVA9wwBF6Iuo3vVzz7TxHCTwXBygrS4k',
+  describe('JsonWebKey2020', () => {
+    // Shared fixture from @digitalbazaar/ed25519-multikey's JWK tests.
+    const publicKeyJwk = {
+      kty: 'OKP',
+      crv: 'Ed25519',
+      x: '11qYAYKxCrfVS_7TyWQHOg7hcvPapiMlrwIaaPcHURo'
+    }
+
+    it('round-trips publicKeyJwk through from() and toJwk()', async () => {
+      const key = await Ed25519VerificationKey2020.from({
         type: 'JsonWebKey2020',
         controller: 'did:example:123',
-        publicKeyJwk: {
-          kty: 'OKP',
-          crv: 'Ed25519',
-          x: '11qYAYKxCrfVS_7TyWQHOg7hcvPapiMlrwIaaPcHURo'
-        }
-      }
-
-      const key = await Ed25519VerificationKey2020.from(keyData)
-
-      expect(key.controller).toBe('did:example:123')
-      expect(key.id).toBe(
-        'did:example:123#kPrK_qmxVWaYVA9wwBF6Iuo3vVzz7TxHCTwXBygrS4k'
-      )
-      expect(key.publicKeyMultibase).toBe(
-        'z6MktwupdmLXVVqTzCw4i46r4uGyosGXRnR3XjN4Zq7oMMsw'
-      )
-
-      const exported = await key.toJsonWebKey2020()
-
-      expect(exported).toEqual(keyData)
+        publicKeyJwk
+      })
+      expect(key.toJwk({ publicKey: true })).toEqual(publicKeyJwk)
     })
 
-    it('computes jwk thumbprint', async () => {
-      const keyData = {
-        id: 'did:example:123#_Qq0UL2Fq651Q0Fjd6TvnYE-faHiOpRlPVQcY_-tA4A',
+    it('preserves id and controller when importing publicKeyJwk', async () => {
+      const key = await Ed25519VerificationKey2020.from({
+        type: 'JsonWebKey2020',
+        id: 'urn:id:1#0',
+        controller: 'urn:id:1',
+        publicKeyJwk
+      })
+      expect(key.id).toBe('urn:id:1#0')
+      expect(key.controller).toBe('urn:id:1')
+      expect(key.toJwk({ publicKey: true })).toEqual(publicKeyJwk)
+    })
+
+    it('round-trips through JsonWebKey2020 serialization', async () => {
+      const key = await Ed25519VerificationKey2020.from({
         type: 'JsonWebKey2020',
         controller: 'did:example:123',
-        publicKeyJwk: {
-          kty: 'OKP',
-          crv: 'Ed25519',
-          x: 'VCpo2LMLhn6iWku8MKvSLg2ZAoC-nlOyPVQaO3FxVeQ'
-        }
-      }
+        publicKeyJwk
+      })
+      const exported = await key.toJsonWebKey2020()
+      const reimported = await Ed25519VerificationKey2020.from(exported)
 
-      const key = await Ed25519VerificationKey2020.from(keyData)
-
-      expect(await key.jwkThumbprint()).toBe(
-        '_Qq0UL2Fq651Q0Fjd6TvnYE-faHiOpRlPVQcY_-tA4A'
+      expect(await reimported.toJsonWebKey2020()).toEqual(exported)
+      // id is the JWK thumbprint encoded as a hash fragment of the controller
+      expect(exported.id).toBe(
+        `${exported.controller}#${await key.jwkThumbprint()}`
       )
     })
   })

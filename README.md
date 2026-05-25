@@ -11,6 +11,7 @@
 - [Security](#security)
 - [Install](#install)
 - [Usage](#usage)
+- [Serialization](#serialization)
 - [Contribute](#contribute)
 - [Commercial Support](#commercial-support)
 - [License](#license)
@@ -77,35 +78,59 @@ const keyPair = await Ed25519VerificationKey2020.from(serializedKeyPair);
 
 ### Exporting the public key only
 
-To export just the public key of a pair:
+To export just the public key of a pair, use `export()` (which returns a
+`Multikey`, the default serialization -- see [Serialization](#serialization)):
 
 ```js
 await keyPair.export({publicKey: true});
 // ->
 {
-  type: 'Ed25519VerificationKey2020',
+  '@context': 'https://w3id.org/security/multikey/v1',
+  type: 'Multikey',
   id: 'did:example:1234#z6MkszZtxCmA2Ce4vUV132PCuLQmwnaDD5mw2L23fGNnsiX3',
   controller: 'did:example:1234',
-  publicKeyMultibase: 'zEYJrMxWigf9boyeJMTRN4Ern8DJMoCXaLK77pzQmxVjf'
+  publicKeyMultibase: 'z6MkszZtxCmA2Ce4vUV132PCuLQmwnaDD5mw2L23fGNnsiX3'
 }
 ```
 
-### Exporting the full public-private key pair
-
-To export the full key pair, including private key (warning: this should be a
-carefully considered operation, best left to dedicated Key Management Systems):
+If you specifically need an `Ed25519VerificationKey2020`-shaped object (with
+`publicKeyMultibase` but no Multikey context), use `toVerificationKey2020()`:
 
 ```js
-await keyPair.export({publicKey: true, privateKey: true});
+keyPair.toVerificationKey2020({publicKey: true});
 // ->
 {
   type: 'Ed25519VerificationKey2020',
   id: 'did:example:1234#z6MkszZtxCmA2Ce4vUV132PCuLQmwnaDD5mw2L23fGNnsiX3',
   controller: 'did:example:1234',
-  publicKeyMultibase: 'zEYJrMxWigf9boyeJMTRN4Ern8DJMoCXaLK77pzQmxVjf',
-  privateKeyMultibase: 'z4E7Q4neNHwv3pXUNzUjzc6TTYspqn9Aw6vakpRKpbVrCzwKWD4hQDHnxuhfrTaMjnR8BTp9NeUvJiwJoSUM6xHAZ'
+  publicKeyMultibase: 'z6MkszZtxCmA2Ce4vUV132PCuLQmwnaDD5mw2L23fGNnsiX3'
 }
 ```
+
+### Exporting the full public-private key pair
+
+To export the full key pair, including the secret key (warning: this should be a
+carefully considered operation, best left to dedicated Key Management Systems).
+With `export()`, the secret key material is requested via the `secretKey` option
+and emitted as `secretKeyMultibase` (Multikey naming):
+
+```js
+await keyPair.export({publicKey: true, secretKey: true});
+// ->
+{
+  '@context': 'https://w3id.org/security/multikey/v1',
+  type: 'Multikey',
+  id: 'did:example:1234#z6MkszZtxCmA2Ce4vUV132PCuLQmwnaDD5mw2L23fGNnsiX3',
+  controller: 'did:example:1234',
+  publicKeyMultibase: 'z6MkszZtxCmA2Ce4vUV132PCuLQmwnaDD5mw2L23fGNnsiX3',
+  secretKeyMultibase: 'z4E7Q4neNHwv3pXUNzUjzc6TTYspqn9Aw6vakpRKpbVrCzwKWD4hQDHnxuhfrTaMjnR8BTp9NeUvJiwJoSUM6xHAZ'
+}
+```
+
+For the legacy `Ed25519VerificationKey2020` shape (with `privateKeyMultibase`),
+use `toVerificationKey2020({publicKey: true, privateKey: true})`. See
+[Serialization](#serialization) for the important difference between the
+32-byte and 64-byte secret key encodings.
 
 ### Generating and verifying key fingerprint
 
@@ -155,6 +180,93 @@ const {verify} = keyPair.verifier();
 const verified = await verify({data, signature});
 // true
 ```
+
+## Serialization
+
+This library is a **superset** that can read and write several related key
+formats. `Multikey` is the default serialization; the legacy 2020/2018 and JWK
+formats are also supported for backward compatibility and interop.
+
+### Importing (`from()`)
+
+`Ed25519VerificationKey2020.from()` dispatches on the `type` field of the object
+you pass it:
+
+| `type`                                 | Produces a key pair from ...   |
+|----------------------------------------|--------------------------------|
+| `Multikey`                             | a Multikey verification method |
+| `Ed25519VerificationKey2018`           | a legacy 2018 key pair         |
+| `JsonWebKey2020`                       | a JsonWebKey2020 object        |
+| `Ed25519VerificationKey2020` (default) | a 2020 key pair                |
+
+```js
+// All of these return an Ed25519VerificationKey2020 instance:
+const fromMultikey = await Ed25519VerificationKey2020.from({type: 'Multikey', ...});
+const from2018 = await Ed25519VerificationKey2020.from({type: 'Ed25519VerificationKey2018', ...});
+const from2020 = await Ed25519VerificationKey2020.from(serialized2020KeyPair);
+```
+
+### Exporting
+
+There is a Multikey-default `export()` plus a `to<Format>()` family:
+
+| Method                            | Output format                                       |
+|-----------------------------------|-----------------------------------------------------|
+| `export()`                        | **Multikey** (`type: 'Multikey'`, multikey context) |
+| `toVerificationKey2020()`         | `Ed25519VerificationKey2020`                         |
+| `toEd255519VerificationKey2018()` | `Ed25519VerificationKey2018`                         |
+| `toJwk()`                         | JWK (RFC 8037)                                       |
+| `toJsonWebKey2020()`              | `JsonWebKey2020`                                     |
+
+> **Note:** `export()` returns a **Multikey** (using Multikey field naming, e.g.
+> `secretKeyMultibase`). If you need a 2020-format verification method (with
+> `privateKeyMultibase`), use `toVerificationKey2020()` instead.
+
+### Secret key length: 32-byte vs 64-byte
+
+> Exporting secret key material should be a carefully considered operation, best
+> left to dedicated Key Management Systems.
+
+Ed25519 has a 32-byte canonical seed, but historically the secret key has often
+been stored as a **64-byte** value: the 32-byte seed concatenated with the
+32-byte public key (`seed || publicKey`). Both encodings share the *same*
+multicodec header (`0x8026`), so **length is the only thing that distinguishes
+them** -- a consumer cannot tell them apart from the header alone, and different
+libraries default differently. This is the main interop hazard to be aware of.
+
+How this library handles each format:
+
+- **`Ed25519VerificationKey2020` (`privateKeyMultibase`)** is always the
+  **64-byte** `seed || publicKey` form. The signing path asserts exactly 64
+  bytes.
+- **Multikey (`secretKeyMultibase`)** is **64-byte by default** (the legacy
+  `seed || publicKey` form, matching `@digitalbazaar/ed25519-multikey`). Pass
+  `export({secretKey: true, canonicalize: true})` to emit the **canonical
+  32-byte** seed instead.
+
+```js
+// Default: 64-byte legacy secret (seed||pub), maximum interop with existing data:
+await keyPair.export({secretKey: true});
+// -> { ..., secretKeyMultibase: 'z<64-byte payload>' }
+
+// Canonical 32-byte seed (smaller, spec-canonical):
+await keyPair.export({secretKey: true, canonicalize: true});
+// -> { ..., secretKeyMultibase: 'z<32-byte payload>' }
+```
+
+**On import, both lengths are accepted and the conversion is lossless.** A
+32-byte Multikey secret is re-concatenated with the public key to rebuild the
+64-byte buffer the signer needs; a 64-byte secret passes through unchanged. Any
+other length is rejected.
+
+Practical guidance:
+
+- For round-tripping with `@digitalbazaar/ed25519-multikey` or existing stored
+  keys, keep the default (64-byte) export.
+- Prefer `canonicalize: true` (32-byte) when you want the spec-canonical form
+  and control both ends of serialization.
+- Whichever you choose, never log or persist secret key material outside a
+  trusted store.
 
 ## Contribute
 

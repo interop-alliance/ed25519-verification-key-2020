@@ -1,5 +1,17 @@
 # @interop/ed25519-verification-key-2020 ChangeLog
 
+## 6.1.0 -
+
+### Added
+- Add Multikey support from `@digitalbazaar/ed25519-multikey` library:
+  - Add logic to `from()` that dispatches on `Multikey` type.
+  - **BREAKING**: Changed `export()` to serialize to `Multikey` type, and moved
+    the previous behavior to `toVerificationKey2020()`. Note also that the
+    `privateKey` export function parameter is now `secretKey`, to match the
+    `Multikey` type.
+  - Added unit tests from `@digitalbazaar/ed25519-multikey`.
+  - Fixed JWK-related tests.
+
 ## 6.0.0-6.0.1 - 2026-05-24
 ### Changed
 

@@ -8,6 +8,7 @@ import type {
   IJsonWebKeyPair2020,
   IJsonWebPublicKey,
   IKeyPairCore,
+  IMultikeyPair,
   ISigner,
   IVerificationKeyPair2018,
   IVerificationKeyPair2020,
@@ -24,6 +25,7 @@ const MULTIBASE_BASE58BTC_HEADER = 'z'
 const MULTICODEC_ED25519_PUB_HEADER = new Uint8Array([0xed, 0x01])
 // multicodec ed25519-priv header as varint
 const MULTICODEC_ED25519_PRIV_HEADER = new Uint8Array([0x80, 0x26])
+const MULTIKEY_CONTEXT_V1_URL = 'https://w3id.org/security/multikey/v1'
 
 export interface GenerateKeyPairOptions extends IKeyPairCore {
   seed?: Uint8Array
@@ -113,17 +115,91 @@ export class Ed25519VerificationKey2020 extends KeyPair {
    * @returns {Promise<Ed25519VerificationKey2020>} An Ed25519 Key Pair.
    */
   static async from(
-    options: IVerificationKeyPair2020 | IJsonWebKeyPair2020
+    options: IVerificationKeyPair2020 | IJsonWebKeyPair2020 | IMultikeyPair
   ): Promise<Ed25519VerificationKey2020> {
+    if (options.type === 'Multikey') {
+      return Ed25519VerificationKey2020.fromMultikey(options as IMultikeyPair)
+    }
     if (options.type === 'Ed25519VerificationKey2018') {
       return Ed25519VerificationKey2020.fromEd25519VerificationKey2018({
         keyPair: options
       })
     }
     if (options.type === 'JsonWebKey2020') {
-      return Ed25519VerificationKey2020.fromJsonWebKey2020(options)
+      return Ed25519VerificationKey2020.fromJsonWebKey2020(
+        options as IJsonWebKeyPair2020
+      )
     }
     return new Ed25519VerificationKey2020(options)
+  }
+
+  /**
+   * Creates a key pair instance from a Multikey verification method.
+   *
+   * @see https://www.w3.org/TR/cid-1.0/#Multikey
+   *
+   * @param options {IMultikeyPair} - A Multikey-typed key document.
+   * @param [options.id] {string}
+   * @param [options.controller] {string}
+   * @param [options.publicKeyMultibase] {string}
+   * @param [options.secretKeyMultibase] {string}
+   * @param [options.revoked] {string}
+   *
+   * @returns {Ed25519VerificationKey2020}
+   */
+  static fromMultikey({
+    id,
+    controller,
+    publicKeyMultibase,
+    secretKeyMultibase,
+    revoked
+  }: IMultikeyPair): Ed25519VerificationKey2020 {
+    if (!publicKeyMultibase) {
+      throw new TypeError('"publicKeyMultibase" property is required.')
+    }
+    if (!_isValidKeyHeader(publicKeyMultibase, MULTICODEC_ED25519_PUB_HEADER)) {
+      throw new TypeError(
+        '"publicKeyMultibase" has invalid header bytes: ' +
+          `"${publicKeyMultibase}".`
+      )
+    }
+
+    let privateKeyMultibase: string | undefined
+    if (secretKeyMultibase) {
+      if (!_isValidKeyHeader(secretKeyMultibase, MULTICODEC_ED25519_PRIV_HEADER)) {
+        throw new Error('"secretKeyMultibase" has invalid header bytes.')
+      }
+      // decode the secret, stripping the multibase 'z' prefix and multicodec header
+      const secretMulticodec = base58btc.decode(secretKeyMultibase.slice(1))
+      const secretBytes = secretMulticodec.slice(MULTICODEC_ED25519_PRIV_HEADER.length)
+
+      if (secretBytes.length === 32) {
+        // Canonical 32-byte Multikey secret (seed only). Re-concatenate with the
+        // public key bytes to rebuild the 64-byte seed||pub buffer that the sign
+        // path requires.
+        const pubMulticodec = base58btc.decode(publicKeyMultibase.slice(1))
+        const publicKeyBytes = pubMulticodec.slice(MULTICODEC_ED25519_PUB_HEADER.length)
+        const combinedBytes = new Uint8Array(64)
+        combinedBytes.set(secretBytes)
+        combinedBytes.set(publicKeyBytes, 32)
+        privateKeyMultibase = _encodeMbKey(MULTICODEC_ED25519_PRIV_HEADER, combinedBytes)
+      } else if (secretBytes.length === 64) {
+        // Legacy 64-byte Multikey secret (seed||pub) — pass through as-is.
+        privateKeyMultibase = secretKeyMultibase
+      } else {
+        throw new Error(
+          `Invalid secret key length: expected 32 or 64 bytes, got ${secretBytes.length}.`
+        )
+      }
+    }
+
+    return new Ed25519VerificationKey2020({
+      id,
+      controller,
+      revoked,
+      publicKeyMultibase,
+      privateKeyMultibase
+    })
   }
 
   /**
@@ -335,18 +411,78 @@ export class Ed25519VerificationKey2020 extends KeyPair {
   }
 
   /**
-   * Exports the serialized representation of the KeyPair
-   * and other information that JSON-LD Signatures can use to form a proof.
+   * Exports this key pair as a Multikey (the default serialization).
+   *
+   * @param {object} [options={}] - Options hashmap.
+   * @param {boolean} [options.publicKey] - Export public key material?
+   * @param {boolean} [options.secretKey] - Export secret key material?
+   * @param {boolean} [options.includeContext] - Include JSON-LD context?
+   * @param {boolean} [options.canonicalize] - Emit the canonical 32-byte seed
+   *   as `secretKeyMultibase` instead of the 64-byte `seed||pub` legacy form.
+   *   Defaults to `false` to match `@digitalbazaar/ed25519-multikey`.
+   *
+   * @returns {IMultikeyPair} A plain js object ready for serialization.
+   */
+  export({
+    publicKey = true,
+    secretKey = false,
+    includeContext = true,
+    canonicalize = false
+  }: {
+    publicKey?: boolean
+    secretKey?: boolean
+    includeContext?: boolean
+    canonicalize?: boolean
+  } = {}): IMultikeyPair {
+    if (!(publicKey || secretKey)) {
+      throw new TypeError(
+        'Export requires specifying either "publicKey" or "secretKey".'
+      )
+    }
+    const exportedKey: IMultikeyPair = {
+      id: this.id,
+      type: 'Multikey'
+    }
+    if (includeContext) {
+      exportedKey['@context'] = MULTIKEY_CONTEXT_V1_URL
+    }
+    if (this.controller) {
+      exportedKey.controller = this.controller
+    }
+    if (publicKey) {
+      exportedKey.publicKeyMultibase = this.publicKeyMultibase
+    }
+    if (secretKey && this._privateKeyBuffer) {
+      // By default, emit the 64-byte `seed||pub` legacy form (matching
+      // `@digitalbazaar/ed25519-multikey`). When `canonicalize` is true, emit
+      // the canonical 32-byte seed (first half of the internal buffer).
+      const secretBytes = canonicalize
+        ? this._privateKeyBuffer.slice(0, 32)
+        : this._privateKeyBuffer
+      exportedKey.secretKeyMultibase = _encodeMbKey(
+        MULTICODEC_ED25519_PRIV_HEADER,
+        secretBytes
+      )
+    }
+    if (this.revoked) {
+      exportedKey.revoked = this.revoked
+    }
+    return exportedKey
+  }
+
+  /**
+   * Exports the serialized representation of the KeyPair in
+   * Ed25519VerificationKey2020 format.
    *
    * @param {object} [options={}] - Options hashmap.
    * @param {boolean} [options.publicKey] - Export public key material?
    * @param {boolean} [options.privateKey] - Export private key material?
    * @param {boolean} [options.includeContext] - Include JSON-LD context?
    *
-   * @returns {object} A plain js object that's ready for serialization
-   *   (to JSON, etc), for use in DIDs, Linked Data Proofs, etc.
+   * @returns {IVerificationKeyPair2020} A plain js object ready for
+   *   serialization, for use in DIDs, Linked Data Proofs, etc.
    */
-  export({
+  toVerificationKey2020({
     publicKey = false,
     privateKey = false,
     includeContext = false

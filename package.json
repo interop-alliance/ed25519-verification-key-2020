@@ -1,6 +1,6 @@
 {
-  "name": "@digitalcredentials/ed25519-verification-key-2020",
-  "version": "6.0.0",
+  "name": "@interop/ed25519-verification-key-2020",
+  "version": "6.0.1",
   "description": "Javascript library for generating and working with Ed25519VerificationKey2020 key pairs, for use with crypto-ld.",
   "type": "module",
   "scripts": {
@@ -17,10 +17,10 @@
     "test-node": "vitest run",
     "test-coverage": "vitest run --coverage"
   },
-  "homepage": "https://github.com/digitalcredentials/ed25519-verification-key-2020",
+  "homepage": "https://github.com/interop-alliance/ed25519-verification-key-2020",
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/digitalcredentials/ed25519-verification-key-2020.git"
+    "url": "git+https://github.com/interop-alliance/ed25519-verification-key-2020.git"
   },
   "license": "BSD-3-Clause",
   "files": [

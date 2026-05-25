@@ -1,6 +1,6 @@
-# @digitalcredentials/ed25519-verification-key-2020 ChangeLog
+# @interop/ed25519-verification-key-2020 ChangeLog
 
-## 6.0.0 - 2026-05-24
+## 6.0.0-6.0.1 - 2026-05-24
 ### Changed
 
 - Fork from `@digitalcredentials/ed25519-verification-key-2020@5.0.0` to `@interop/`.

@@ -2,10 +2,8 @@
  * Copyright (c) 2025 Digital Credentials Consortium (Typescript conversion).
  * Copyright (c) 2021 Digital Bazaar, Inc. All rights reserved.
  */
-import {
-  IVerificationResult, KeyPair
-} from '@digitalcredentials/keypair'
-import {
+import { type IVerificationResult, KeyPair } from '@digitalcredentials/keypair'
+import type {
   IJsonWebKey,
   IJsonWebKeyPair2020,
   IJsonWebPublicKey,
@@ -13,7 +11,7 @@ import {
   ISigner,
   IVerificationKeyPair2018,
   IVerificationKeyPair2020,
-  IVerifier,
+  IVerifier
 } from '@digitalcredentials/ssi'
 
 import { base58btc, base64url } from './baseX.js'

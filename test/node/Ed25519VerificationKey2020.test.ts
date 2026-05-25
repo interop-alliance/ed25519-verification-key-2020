@@ -1,12 +1,12 @@
 /*!
  * Copyright (c) 2020 Digital Bazaar, Inc. All rights reserved.
  */
-import { expect } from 'chai'
-import { base58btc } from '../src/baseX.js'
+import { describe, it, expect } from 'vitest'
+import { base58btc } from '../../src/baseX.js'
 import { mockKey, seed } from './mock-data.js'
 import * as multibase from 'multibase'
 import * as multicodec from 'multicodec'
-import { Ed25519VerificationKey2020 } from '../src/index.js'
+import { Ed25519VerificationKey2020 } from '../../src/index.js'
 
 // multibase base58-btc header
 const MULTIBASE_BASE58BTC_HEADER = 'z'
@@ -14,11 +14,11 @@ const MULTIBASE_BASE58BTC_HEADER = 'z'
 describe('Ed25519VerificationKey2020', () => {
   describe('class', () => {
     it('should have suite and SUITE_CONTEXT properties', async () => {
-      expect(Ed25519VerificationKey2020).to.have.property(
+      expect(Ed25519VerificationKey2020).toHaveProperty(
         'suite',
         'Ed25519VerificationKey2020'
       )
-      expect(Ed25519VerificationKey2020).to.have.property(
+      expect(Ed25519VerificationKey2020).toHaveProperty(
         'SUITE_CONTEXT',
         'https://w3id.org/security/suites/ed25519-2020/v1'
       )
@@ -34,20 +34,20 @@ describe('Ed25519VerificationKey2020', () => {
         controller,
         publicKeyMultibase
       })
-      expect(keyPair.id).to.equal(
+      expect(keyPair.id).toBe(
         'did:example:1234#z6MknCCLeeHBUaHu4aHSVLDCYQW9gjVJ7a63FpMvtuVMy53T'
       )
     })
 
     it('should error if publicKeyMultibase property is missing', async () => {
-      let error
+      let error: unknown
       try {
         new Ed25519VerificationKey2020({})
-      } catch (e: any) {
-        error = e
+      } catch (err: unknown) {
+        error = err
       }
-      expect(error).to.be.an.instanceof(TypeError)
-      expect(error.message).to.equal(
+      expect(error).toBeInstanceOf(TypeError)
+      expect((error as TypeError).message).toBe(
         'The "publicKeyMultibase" property is required.'
       )
     })
@@ -55,26 +55,26 @@ describe('Ed25519VerificationKey2020', () => {
 
   describe('generate', () => {
     it('should generate a key pair', async () => {
-      let ldKeyPair: any
-      let error
+      let ldKeyPair: Ed25519VerificationKey2020 | undefined
+      let error: unknown
       try {
         ldKeyPair = await Ed25519VerificationKey2020.generate()
-      } catch (e: any) {
-        error = e
+      } catch (err: unknown) {
+        error = err
       }
 
-      expect(error).to.not.exist
-      expect(ldKeyPair.publicKeyMultibase).to.exist
-      expect(ldKeyPair.privateKeyMultibase).to.exist
+      expect(error).toBeUndefined()
+      expect(ldKeyPair?.publicKeyMultibase).toBeDefined()
+      expect(ldKeyPair?.privateKeyMultibase).toBeDefined()
 
       const privateKeyBytes = base58btc.decode(
-        ldKeyPair.privateKeyMultibase.slice(1)
+        ldKeyPair!.privateKeyMultibase!.slice(1)
       )
       const publicKeyBytes = base58btc.decode(
-        ldKeyPair.publicKeyMultibase.slice(1)
+        ldKeyPair!.publicKeyMultibase.slice(1)
       )
-      expect(privateKeyBytes.length).to.equal(66)
-      expect(publicKeyBytes.length).to.equal(34)
+      expect(privateKeyBytes.length).toBe(66)
+      expect(publicKeyBytes.length).toBe(34)
     })
 
     it('should generate the same key from the same seed', async () => {
@@ -82,10 +82,8 @@ describe('Ed25519VerificationKey2020', () => {
       seed.fill(0x01)
       const keyPair1 = await Ed25519VerificationKey2020.generate({ seed })
       const keyPair2 = await Ed25519VerificationKey2020.generate({ seed })
-      expect(keyPair1.publicKeyMultibase).to.equal(keyPair2.publicKeyMultibase)
-      expect(keyPair1.privateKeyMultibase).to.equal(
-        keyPair2.privateKeyMultibase
-      )
+      expect(keyPair1.publicKeyMultibase).toBe(keyPair2.publicKeyMultibase)
+      expect(keyPair1.privateKeyMultibase).toBe(keyPair2.privateKeyMultibase)
     })
   })
 
@@ -106,30 +104,23 @@ describe('Ed25519VerificationKey2020', () => {
         privateKey: true
       })
 
-      expect(exported).to.have.keys([
-        'id',
-        'type',
-        'controller',
-        'publicKeyMultibase',
-        'privateKeyMultibase',
-        'revoked'
-      ])
+      expect(Object.keys(exported).sort()).toEqual(
+        ['id', 'type', 'controller', 'publicKeyMultibase', 'privateKeyMultibase', 'revoked'].sort()
+      )
 
-      expect(exported.controller).to.equal('did:example:1234')
-      expect(exported.type).to.equal('Ed25519VerificationKey2020')
-      expect(exported.id).to.equal(
+      expect(exported.controller).toBe('did:example:1234')
+      expect(exported.type).toBe('Ed25519VerificationKey2020')
+      expect(exported.id).toBe(
         'did:example:1234#' + 'z6Mkpw72M9suPCBv48X2Xj4YKZJH9W7wzEK1aS6JioKSo89C'
       )
-      expect(exported).to.have.property(
-        'publicKeyMultibase',
+      expect(exported.publicKeyMultibase).toBe(
         'z6Mkpw72M9suPCBv48X2Xj4YKZJH9W7wzEK1aS6JioKSo89C'
       )
-      expect(exported).to.have.property(
-        'privateKeyMultibase',
+      expect(exported.privateKeyMultibase).toBe(
         'zrv1mHUXWkWUpThaapTt8tkxSotE1iSRRuPNarhs3vTn2z61hQESuKXG7zGQsePB7JHd' +
           'jaCzPZmBkkqULLvoLHoD82a'
       )
-      expect(exported).to.have.property('revoked', pastDate)
+      expect(exported.revoked).toBe(pastDate)
     })
 
     it('should only export public key if specified', async () => {
@@ -138,9 +129,11 @@ describe('Ed25519VerificationKey2020', () => {
       })
       const exported = await keyPair.export({ publicKey: true })
 
-      expect(exported).to.have.keys(['id', 'type', 'publicKeyMultibase'])
-      expect(exported).to.have.property('id', 'did:ex:123#test-id')
-      expect(exported).to.have.property('type', 'Ed25519VerificationKey2020')
+      expect(Object.keys(exported).sort()).toEqual(
+        ['id', 'type', 'publicKeyMultibase'].sort()
+      )
+      expect(exported.id).toBe('did:ex:123#test-id')
+      expect(exported.type).toBe('Ed25519VerificationKey2020')
     })
   })
 
@@ -150,7 +143,7 @@ describe('Ed25519VerificationKey2020', () => {
       const fingerprint = keyPair.fingerprint()
 
       const newKey = Ed25519VerificationKey2020.fromFingerprint({ fingerprint })
-      expect(newKey.publicKeyMultibase).to.equal(keyPair.publicKeyMultibase)
+      expect(newKey.publicKeyMultibase).toBe(keyPair.publicKeyMultibase)
     })
   })
 
@@ -170,7 +163,7 @@ describe('Ed25519VerificationKey2020', () => {
 
       expect(
         await imported.export({ publicKey: true, privateKey: true })
-      ).to.eql(exported)
+      ).toEqual(exported)
     })
   })
 
@@ -178,8 +171,8 @@ describe('Ed25519VerificationKey2020', () => {
     it('should create an Ed25519 key fingerprint', async () => {
       const keyPair = await Ed25519VerificationKey2020.generate()
       const fingerprint = keyPair.fingerprint()
-      expect(fingerprint).to.be.a('string')
-      expect(fingerprint.startsWith('z')).to.be.true
+      expect(typeof fingerprint).toBe('string')
+      expect(fingerprint.startsWith('z')).toBe(true)
     })
 
     it('should be properly multicodec encoded', async () => {
@@ -187,7 +180,7 @@ describe('Ed25519VerificationKey2020', () => {
       const fingerprint = keyPair.fingerprint()
       const mcPubkeyBytes = multibase.decode(fingerprint)
       const mcType = multicodec.getCodec(mcPubkeyBytes)
-      expect(mcType).to.equal('ed25519-pub')
+      expect(mcType).toBe('ed25519-pub')
       const pubkeyBytes = multicodec.addPrefix(
         'ed25519-pub',
         multicodec.rmPrefix(mcPubkeyBytes)
@@ -195,8 +188,8 @@ describe('Ed25519VerificationKey2020', () => {
       const encodedPubkey =
         MULTIBASE_BASE58BTC_HEADER + base58btc.encode(pubkeyBytes)
 
-      expect(encodedPubkey).to.equal(keyPair.publicKeyMultibase)
-      expect(typeof keyPair.fingerprint()).to.equal('string')
+      expect(encodedPubkey).toBe(keyPair.publicKeyMultibase)
+      expect(typeof keyPair.fingerprint()).toBe('string')
     })
   })
 
@@ -205,10 +198,10 @@ describe('Ed25519VerificationKey2020', () => {
       const keyPair = await Ed25519VerificationKey2020.generate()
       const fingerprint = keyPair.fingerprint()
       const result = keyPair.verifyFingerprint({ fingerprint })
-      expect(result).to.exist
-      expect(result).to.be.an('object')
-      expect(result.verified).to.exist
-      expect(result.verified).to.be.true
+      expect(result).toBeDefined()
+      expect(typeof result).toBe('object')
+      expect(result.verified).toBeDefined()
+      expect(result.verified).toBe(true)
     })
 
     it('should reject an improperly encoded fingerprint', async () => {
@@ -217,13 +210,14 @@ describe('Ed25519VerificationKey2020', () => {
       const result = keyPair.verifyFingerprint({
         fingerprint: fingerprint.slice(1)
       })
-      expect(result).to.exist
+      expect(result).toBeDefined()
 
-      expect(result.verified).to.exist
-      expect(result.verified).to.be.false
-      expect(result.error).to.exist
-      expect(result?.error?.message)
-          .to.equal('"fingerprint" must be a multibase encoded string.')
+      expect(result.verified).toBeDefined()
+      expect(result.verified).toBe(false)
+      expect(result.error).toBeDefined()
+      expect(result.error?.message).toBe(
+        '"fingerprint" must be a multibase encoded string.'
+      )
     })
 
     it('should reject an invalid fingerprint', async () => {
@@ -233,13 +227,12 @@ describe('Ed25519VerificationKey2020', () => {
       const t = fingerprint.slice(1).split('').reverse().join('')
       const badFingerprint = fingerprint[0] + t
       const result = keyPair.verifyFingerprint({ fingerprint: badFingerprint })
-      expect(result).to.exist
-      expect(result.verified).to.exist
-      expect(result.verified).to.be.false
-      expect(result.error).to.exist
+      expect(result).toBeDefined()
+      expect(result.verified).toBeDefined()
+      expect(result.verified).toBe(false)
+      expect(result.error).toBeDefined()
 
-      expect(result.error).to.exist
-      expect(result?.error?.message).to.equal(
+      expect(result.error?.message).toBe(
         'Invalid fingerprint encoding (expecting 0xed01 byte prefix).'
       )
     })
@@ -247,13 +240,12 @@ describe('Ed25519VerificationKey2020', () => {
     it('should reject an improperly encoded fingerprint', async () => {
       const keyPair = await Ed25519VerificationKey2020.generate()
       const result = keyPair.verifyFingerprint({ fingerprint: 'zTESTSTRNG' })
-      expect(result).to.exist
-      expect(result.verified).to.exist
-      expect(result.verified).to.be.false
-      expect(result.error).to.exist
+      expect(result).toBeDefined()
+      expect(result.verified).toBeDefined()
+      expect(result.verified).toBe(false)
+      expect(result.error).toBeDefined()
 
-      expect(result.error).to.exist
-      expect(result?.error?.message).to.equal(
+      expect(result.error?.message).toBe(
         'Invalid fingerprint encoding (expecting 0xed01 byte prefix).'
       )
     })
@@ -266,11 +258,11 @@ describe('Ed25519VerificationKey2020', () => {
       const fingerprint = keyPair1.fingerprint()
       const fingerprint2 = keyPair2.fingerprint()
       const result = keyPair2.verifyFingerprint({ fingerprint })
-      expect(result).to.exist
-      expect(result).to.be.an('object')
-      expect(result.verified).to.exist
-      expect(result.verified).to.be.true
-      expect(fingerprint).to.equal(fingerprint2)
+      expect(result).toBeDefined()
+      expect(typeof result).toBe('object')
+      expect(result.verified).toBeDefined()
+      expect(result.verified).toBe(true)
+      expect(fingerprint).toBe(fingerprint2)
     })
   })
 
@@ -290,17 +282,17 @@ describe('Ed25519VerificationKey2020', () => {
 
       const key = await Ed25519VerificationKey2020.from(keyData)
 
-      expect(key.controller).to.equal('did:example:123')
-      expect(key.id).to.equal(
+      expect(key.controller).toBe('did:example:123')
+      expect(key.id).toBe(
         'did:example:123#kPrK_qmxVWaYVA9wwBF6Iuo3vVzz7TxHCTwXBygrS4k'
       )
-      expect(key.publicKeyMultibase).to.equal(
+      expect(key.publicKeyMultibase).toBe(
         'z6MktwupdmLXVVqTzCw4i46r4uGyosGXRnR3XjN4Zq7oMMsw'
       )
 
       const exported = await key.toJsonWebKey2020()
 
-      expect(exported).to.eql(keyData)
+      expect(exported).toEqual(keyData)
     })
 
     it('computes jwk thumbprint', async () => {
@@ -317,7 +309,7 @@ describe('Ed25519VerificationKey2020', () => {
 
       const key = await Ed25519VerificationKey2020.from(keyData)
 
-      expect(await key.jwkThumbprint()).to.equal(
+      expect(await key.jwkThumbprint()).toBe(
         '_Qq0UL2Fq651Q0Fjd6TvnYE-faHiOpRlPVQcY_-tA4A'
       )
     })

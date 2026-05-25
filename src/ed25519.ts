@@ -7,8 +7,8 @@ import {
   createHash,
   createPrivateKey,
   createPublicKey,
-  KeyExportOptions
-} from 'crypto'
+  type KeyExportOptions
+} from 'node:crypto'
 import { assertKeyBytes } from './validators.js'
 
 const crypto = globalThis.crypto
@@ -173,7 +173,7 @@ function privateKeyDerEncode({
     p = seedBytes
   } else {
     // extract the first 32 bytes of the 64 byte private key representation
-    // @ts-ignore
+    // @ts-expect-error privateKeyBytes is guarded non-null above but TS can't narrow it here
     p = privateKeyBytes.slice(0, 32)
   }
   return Buffer.concat([DER_PRIVATE_KEY_PREFIX, p])

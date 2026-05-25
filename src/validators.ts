@@ -35,7 +35,7 @@ export function assertKeyBytes({
     error.name = 'DataError'
     // add the error code from the did:key spec if provided
     if (code) {
-      // @ts-ignore
+      // @ts-expect-error error.code is not in the standard Error type
       error.code = code
     }
     throw error

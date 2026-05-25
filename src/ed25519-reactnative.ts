@@ -2,8 +2,7 @@
  * Copyright (c) 2021 Digital Bazaar, Inc. All rights reserved.
  */
 import * as ed25519 from '@noble/ed25519'
-import { sha512 } from '@noble/hashes/sha512'
-import { sha256 } from '@noble/hashes/sha256'
+import { sha256, sha512 } from '@noble/hashes/sha2.js'
 
 // React Native MUST provide "crypto.getRandomValues"
 const crypto = globalThis.crypto

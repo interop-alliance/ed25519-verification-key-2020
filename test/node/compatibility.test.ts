@@ -1,9 +1,8 @@
 /*!
  * Copyright (c) 2020 Digital Bazaar, Inc. All rights reserved.
  */
-import { expect } from 'chai'
-
-import { Ed25519VerificationKey2020 } from '../src/index.js'
+import { describe, it, expect } from 'vitest'
+import { Ed25519VerificationKey2020 } from '../../src/index.js'
 import * as jose from 'jose'
 
 describe('compatibility', () => {
@@ -19,21 +18,24 @@ describe('compatibility', () => {
 
       const keyPair = await Ed25519VerificationKey2020.fromJsonWebKey2020({
         type: 'JsonWebKey2020',
-        publicKeyJwk: {...exampleJoseKey},
-        privateKeyJwk: {...exampleJoseKey}
+        publicKeyJwk: { ...exampleJoseKey },
+        privateKeyJwk: { ...exampleJoseKey }
       })
 
-      const exportedJwk: any = await keyPair.toJwk({publicKey: true, privateKey: true})
+      const exportedJwk: any = await keyPair.toJwk({
+        publicKey: true,
+        privateKey: true
+      })
 
-      expect(exportedJwk).to.eql({
-          crv: 'Ed25519',
-          d: 'y71N3tdun63bo9OBHXuI03qaV3eY3kL1ypoG8tFy4LI',
-          x: 'JOVEKqgcoSaDbYimIWoJHcvlZefVDQJXtKMmSRBHCHU',
-          kty: 'OKP'
+      expect(exportedJwk).toEqual({
+        crv: 'Ed25519',
+        d: 'y71N3tdun63bo9OBHXuI03qaV3eY3kL1ypoG8tFy4LI',
+        x: 'JOVEKqgcoSaDbYimIWoJHcvlZefVDQJXtKMmSRBHCHU',
+        kty: 'OKP'
       })
 
       const importedJoseKey = await jose.importJWK(exportedJwk, 'EdDSA')
-      expect(await jose.exportJWK(importedJoseKey)).to.eql({
+      expect(await jose.exportJWK(importedJoseKey)).toEqual({
         crv: 'Ed25519',
         d: 'y71N3tdun63bo9OBHXuI03qaV3eY3kL1ypoG8tFy4LI',
         x: 'JOVEKqgcoSaDbYimIWoJHcvlZefVDQJXtKMmSRBHCHU',

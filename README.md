@@ -1,7 +1,7 @@
-# Ed25519VerificationKey2020 Key Pair Library for Linked Data _(@digitalcredentials/ed25519-verification-key-2020)_
+# Ed25519VerificationKey2020 Key Pair Library for Linked Data _(@interop/ed25519-verification-key-2020)_
 
-[![Node.js CI](https://github.com/digitalcredentials/ed25519-verification-key-2020/workflows/Node.js%20CI/badge.svg)](https://github.com/digitalcredentials/ed25519-verification-key-2020/actions?query=workflow%3A%22Node.js+CI%22)
-[![NPM Version](https://img.shields.io/npm/v/@digitalcredentials/ed25519-verification-key-2020.svg)](https://npm.im/@digitalcredentials/ed25519-verification-key-2020)
+[![Node.js CI](https://github.com/interop-alliance/ed25519-verification-key-2020/workflows/Node.js%20CI/badge.svg)](https://github.com/interop-alliance/ed25519-verification-key-2020/actions?query=workflow%3A%22Node.js+CI%22)
+[![NPM Version](https://img.shields.io/npm/v/@interop/ed25519-verification-key-2020.svg)](https://npm.im/@interop/ed25519-verification-key-2020)
 
 > Typescript/Javascript library for generating and working with Ed25519VerificationKey2020 key pairs, for use with crypto-ld.
 
@@ -42,9 +42,9 @@ your system will largely depend on your design decisions.
 To install locally (for development):
 
 ```
-git clone https://github.com/digitalcredentials/ed25519-verification-key-2020.git
+git clone https://github.com/interop-alliance/ed25519-verification-key-2020.git
 cd ed25519-verification-key-2020
-npm install
+pnpm install
 ```
 
 ## Usage
@@ -59,7 +59,7 @@ To generate a new public/private key pair:
   key.
 
 ```js
-import {Ed25519VerificationKey2020} from '@digitalcredentials/ed25519-verification-key-2020';
+import {Ed25519VerificationKey2020} from '@interop/ed25519-verification-key-2020';
 
 const edKeyPair = await Ed25519VerificationKey2020.generate();
 ```
@@ -154,65 +154,6 @@ const {verify} = keyPair.verifier();
 
 const verified = await verify({data, signature});
 // true
-```
-
-### Converting to and from previous Ed25519VerificationKey2018 key type
-
-If you have serialized and stored keys of the previous
-`Ed25519VerificationKey2018` key type (for example, generated using
-the [`ed25519-verification-key-2018`](https://github.com/digitalbazaar/ed25519-verification-key-2018))
-library, or using the `Ed25519KeyPair` keys bundled with `crypto-ld v3.x`),
-things to keep in mind:
-
-* Instances of those key types still contain the same key material, the only
-  thing that has changed from the 2018 suite to the 2020 suite is the way the public
-  and private key material is serialized when exporting. The 2018 suite key
-  types serialize using the `publicKeyBase58` and `privateKeyBase58` properties,
-  and the 2020 suite key (this repo) serializes using corresponding
-  `publicKeyMultibase` and `privateKeyMultibase` property.
-* You can convert from the 2018 key type to the 2020 key type using the provided
-  `Ed25519VerificationKey2020.fromEd25519VerificationKey2018()` method (see below).
-* They `generate()` the same key material, given the same `seed` parameter.
-* Both the 2018 and 2020 keys produce and verify the same signatures.
-
-Example of converting from 2018:
-
-```js
-import {Ed25519VerificationKey2018}
-  from '@digitalbazaar/ed25519-verification-key-2018';
-import {Ed25519VerificationKey2020}
-  from '@digitalbazaar/ed25519-verification-key-2020';
-
-const keyPair2018 = await Ed25519VerificationKey2018.generate({
-  controller: 'did:example:1234'
-});
-
-const keyPair2020 = await Ed25519VerificationKey2020
-  .fromEd25519VerificationKey2018({keyPair: keyPair2018});
-
-// The resulting keyPair2020 will have the same `id` and `controller` properties
-// as its 2018 source. They will also produce and verify the same signatures.
-
-// data is a Uint8Array of bytes
-const data = (new TextEncoder()).encode('test data goes here');
-const signatureBytes2018 = await keyPair2018.signer().sign({data});
-
-// this is the same signature as that produced by the 2020 key. And will verify
-// the same.
-await keyPair2020.verifier().verify({data, signature: signatureBytes2018})
-// true
-```
-
-Example of converting to the 2018 serialization:
-
-```js
-const keyPair2020 = await Ed25519VerificationKey2020.generate({
-  controller: 'did:example:1234'
-});
-
-const keyObject2018 = keyPair2020.toEd255519VerificationKey2018({
-  publicKey: true, privateKey: true, includeContext: true
-});
 ```
 
 ## Contribute

@@ -2,19 +2,20 @@
   "name": "@digitalcredentials/ed25519-verification-key-2020",
   "version": "5.0.0",
   "description": "Javascript library for generating and working with Ed25519VerificationKey2020 key pairs, for use with crypto-ld.",
+  "type": "module",
   "scripts": {
-    "build-esm": "tsc -p tsconfig.esm.json",
-    "build-types": "tsc -p tsconfig.types.json",
-    "build-test": "tsc -p tsconfig.spec.json",
-    "build": "npm run clear && npm run build-types && npm run build-esm",
+    "build": "pnpm run clear && tsc",
     "clear": "rimraf dist/*",
-    "lint": "eslint .",
-    "lint:fix": "eslint --fix .",
-    "prepare": "npm run build",
-    "prettier": "prettier src --write",
-    "rebuild": "npm run clear && npm run build",
-    "test": "npm run lint && npm run test-node",
-    "test-node": "npm run build-test && mocha dist/test/*.spec.js"
+    "dev": "vite",
+    "fix": "eslint --fix src test && pnpm run format",
+    "format": "prettier --write \"src/**/*.ts\" \"test/**/*.ts\"",
+    "lint": "eslint src test",
+    "prepare": "pnpm run build",
+    "rebuild": "pnpm run clear && pnpm run build",
+    "test": "pnpm run lint && pnpm run test-node && pnpm run test-browser",
+    "test-browser": "playwright test",
+    "test-node": "vitest run",
+    "test-coverage": "vitest run --coverage"
   },
   "homepage": "https://github.com/digitalcredentials/ed25519-verification-key-2020",
   "repository": {
@@ -28,50 +29,19 @@
     "README.md",
     "LICENSE"
   ],
-  "dependencies": {
-    "@digitalcredentials/ssi": "^5.4.2",
-    "@digitalcredentials/keypair": "^3.0.0",
-    "@noble/ed25519": "^3.1.0",
-    "@noble/hashes": "^1.7.0",
-    "base-x": "^5.0.1"
-  },
-  "devDependencies": {
-    "@types/chai": "^4.3.4",
-    "@types/mocha": "^10.0.1",
-    "@types/node": "^20.4.6",
-    "@typescript-eslint/eslint-plugin": "^5.46.1",
-    "@typescript-eslint/parser": "^5.46.1",
-    "chai": "^4.3.7",
-    "cross-env": "^7.0.3",
-    "eslint": "^8.46.0",
-    "eslint-config-prettier": "^8.5.0",
-    "eslint-config-standard-with-typescript": "^24.0.0",
-    "eslint-plugin-import": "^2.26.0",
-    "eslint-plugin-node": "^11.1.0",
-    "eslint-plugin-prettier": "^4.2.1",
-    "eslint-plugin-promise": "^6.1.1",
-    "jose": "^4.11.1",
-    "mocha": "^10.2.0",
-    "multibase": "^4.0.4",
-    "multicodec": "^3.0.1",
-    "rimraf": "^5.0.1",
-    "ts-node": "^10.9.1",
-    "typescript": "5.2.2"
-  },
-  "type": "module",
-  "module": "./dist/index.js",
-  "types": "./dist/index.d.ts",
   "exports": {
     ".": {
       "types": "./dist/index.d.ts",
       "default": "./dist/index.js"
     }
   },
+  "module": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "sideEffects": false,
   "browser": {
     "buffer": false,
     "crypto": false,
     "util": false,
-    "promisify": false,
     "./src/ed25519.ts": "./src/ed25519-browser.ts",
     "./dist/ed25519.js": "./dist/ed25519-browser.js"
   },
@@ -79,10 +49,39 @@
     "buffer": false,
     "crypto": false,
     "util": false,
-    "promisify": false,
     "./src/ed25519.ts": "./src/ed25519-reactnative.ts",
     "./dist/ed25519.js": "./dist/ed25519-reactnative.js"
   },
+  "dependencies": {
+    "@digitalcredentials/ssi": "^5.4.2",
+    "@digitalcredentials/keypair": "^3.0.0",
+    "@noble/ed25519": "^3.1.0",
+    "@noble/hashes": "^2.2.0",
+    "base-x": "^5.0.1"
+  },
+  "devDependencies": {
+    "@eslint/js": "^10.0.1",
+    "@playwright/test": "^1.60.0",
+    "@types/node": "^22.0.0",
+    "@vitest/coverage-v8": "^4.1.7",
+    "eslint": "^10.4.0",
+    "eslint-config-prettier": "^10.1.8",
+    "globals": "^17.6.0",
+    "jose": "^4.11.1",
+    "multibase": "^4.0.4",
+    "multicodec": "^3.0.1",
+    "prettier": "^3.8.3",
+    "rimraf": "^6.1.3",
+    "typescript": "^5.5.0",
+    "typescript-eslint": "^8.59.4",
+    "vite": "^6.3.5",
+    "vitest": "^4.1.7"
+  },
+  "publishConfig": {
+    "access": "public",
+    "provenance": true
+  },
+  "packageManager": "pnpm@10.20.0",
   "engines": {
     "node": ">=20"
   }

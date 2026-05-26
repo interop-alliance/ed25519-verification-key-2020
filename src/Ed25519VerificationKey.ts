@@ -710,6 +710,7 @@ export class Ed25519VerificationKey extends KeyPair {
     }
 
     return {
+      algorithm: 'Ed25519',
       async sign({ data }) {
         if (!privateKeyBuffer) {
           throw new Error('A private key is not available for signing.')
@@ -724,6 +725,7 @@ export class Ed25519VerificationKey extends KeyPair {
     const publicKeyBuffer = this._publicKeyBuffer
 
     return {
+      algorithm: 'Ed25519',
       async verify({ data, signature }) {
         if (!publicKeyBuffer) {
           throw new Error('A public key is not available for verifying.')

@@ -1,5 +1,10 @@
 # @interop/ed25519-verification-key ChangeLog
 
+## 6.1.1 -
+### Fixed
+- Ensure `signer()` and `verifier()` functions set the `algorithm` property
+  (important for use with DataIntegrity library proofs).
+
 ## 6.1.0 - 2026-05-25
 
 ### Changed

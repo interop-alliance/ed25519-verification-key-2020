@@ -27,9 +27,17 @@ describe('sign and verify', () => {
       'id',
       'did:example:1234#z6MknCCLeeHBUaHu4aHSVLDCYQW9gjVJ7a63FpMvtuVMy53T'
     )
+    expect(signer).toHaveProperty(
+      'algorithm',
+      'Ed25519'
+    )
     expect(verifier).toHaveProperty(
       'id',
       'did:example:1234#z6MknCCLeeHBUaHu4aHSVLDCYQW9gjVJ7a63FpMvtuVMy53T'
+    )
+    expect(verifier).toHaveProperty(
+      'algorithm',
+      'Ed25519'
     )
     const data = stringToUint8Array('test 1234')
     const signature = await signer.sign({ data })

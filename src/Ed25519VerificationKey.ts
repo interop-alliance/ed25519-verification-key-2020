@@ -31,7 +31,7 @@ export interface GenerateKeyPairOptions extends IKeyPairCore {
   seed?: Uint8Array
 }
 
-export class Ed25519VerificationKey2020 extends KeyPair {
+export class Ed25519VerificationKey extends KeyPair {
   // Used by CryptoLD harness's fromKeyId() method.
   static SUITE_CONTEXT: string =
     'https://w3id.org/security/suites/ed25519-2020/v1'
@@ -105,32 +105,32 @@ export class Ed25519VerificationKey2020 extends KeyPair {
    *
    * @param {object} options - Key pair options (see constructor).
    * @example
-   * > const keyPair = await Ed25519VerificationKey2020.from({
+   * > const keyPair = await Ed25519VerificationKey.from({
    * controller: 'did:ex:1234',
    * type: 'Ed25519VerificationKey2020',
    * publicKeyMultibase,
    * privateKeyMultibase
    * });
    *
-   * @returns {Promise<Ed25519VerificationKey2020>} An Ed25519 Key Pair.
+   * @returns {Promise<Ed25519VerificationKey>} An Ed25519 Key Pair.
    */
   static async from(
     options: IVerificationKeyPair2020 | IJsonWebKeyPair2020 | IMultikeyPair
-  ): Promise<Ed25519VerificationKey2020> {
+  ): Promise<Ed25519VerificationKey> {
     if (options.type === 'Multikey') {
-      return Ed25519VerificationKey2020.fromMultikey(options as IMultikeyPair)
+      return Ed25519VerificationKey.fromMultikey(options as IMultikeyPair)
     }
     if (options.type === 'Ed25519VerificationKey2018') {
-      return Ed25519VerificationKey2020.fromEd25519VerificationKey2018({
+      return Ed25519VerificationKey.fromEd25519VerificationKey2018({
         keyPair: options
       })
     }
     if (options.type === 'JsonWebKey2020') {
-      return Ed25519VerificationKey2020.fromJsonWebKey2020(
+      return Ed25519VerificationKey.fromJsonWebKey2020(
         options as IJsonWebKeyPair2020
       )
     }
-    return new Ed25519VerificationKey2020(options)
+    return new Ed25519VerificationKey(options)
   }
 
   /**
@@ -145,7 +145,7 @@ export class Ed25519VerificationKey2020 extends KeyPair {
    * @param [options.secretKeyMultibase] {string}
    * @param [options.revoked] {string}
    *
-   * @returns {Ed25519VerificationKey2020}
+   * @returns {Ed25519VerificationKey}
    */
   static fromMultikey({
     id,
@@ -153,7 +153,7 @@ export class Ed25519VerificationKey2020 extends KeyPair {
     publicKeyMultibase,
     secretKeyMultibase,
     revoked
-  }: IMultikeyPair): Ed25519VerificationKey2020 {
+  }: IMultikeyPair): Ed25519VerificationKey {
     if (!publicKeyMultibase) {
       throw new TypeError('"publicKeyMultibase" property is required.')
     }
@@ -193,7 +193,7 @@ export class Ed25519VerificationKey2020 extends KeyPair {
       }
     }
 
-    return new Ed25519VerificationKey2020({
+    return new Ed25519VerificationKey({
       id,
       controller,
       revoked,
@@ -210,13 +210,13 @@ export class Ed25519VerificationKey2020 extends KeyPair {
    * @typedef {object} Ed25519VerificationKey2018
    * @param {Ed25519VerificationKey2018} keyPair - Ed25519 2018 suite key pair.
    *
-   * @returns {Ed25519VerificationKey2020} - 2020 suite instance.
+   * @returns {Ed25519VerificationKey} - 2020 suite instance.
    */
   static fromEd25519VerificationKey2018({
     keyPair
   }: {
     keyPair: IVerificationKeyPair2018
-  }): Ed25519VerificationKey2020 {
+  }): Ed25519VerificationKey {
     if (!keyPair.publicKeyBase58) {
       throw new Error('keyPair.publicKeyBase58 property is required.')
     }
@@ -224,20 +224,20 @@ export class Ed25519VerificationKey2020 extends KeyPair {
         MULTICODEC_ED25519_PUB_HEADER,
         base58btc.decode(keyPair.publicKeyBase58)
     )
-    const keyPair2020 = new Ed25519VerificationKey2020({
+    const newKeyPair = new Ed25519VerificationKey({
       id: keyPair.id,
       controller: keyPair.controller,
       publicKeyMultibase
     })
 
     if (keyPair.privateKeyBase58) {
-      keyPair2020.privateKeyMultibase = _encodeMbKey(
+      newKeyPair.privateKeyMultibase = _encodeMbKey(
         MULTICODEC_ED25519_PRIV_HEADER,
         base58btc.decode(keyPair.privateKeyBase58)
       )
     }
 
-    return keyPair2020
+    return newKeyPair
   }
 
   /**
@@ -252,7 +252,7 @@ export class Ed25519VerificationKey2020 extends KeyPair {
    * @param {string} options.controller - Key controller.
    * @param {object} options.publicKeyJwk - JWK object.
    *
-   * @returns {Promise<Ed25519VerificationKey2020>} Resolves with key pair.
+   * @returns {Promise<Ed25519VerificationKey>} Resolves with key pair.
    */
   static async fromJsonWebKey2020({
     id,
@@ -260,7 +260,7 @@ export class Ed25519VerificationKey2020 extends KeyPair {
     controller,
     publicKeyJwk,
     privateKeyJwk
-  }: IJsonWebKeyPair2020): Promise<Ed25519VerificationKey2020> {
+  }: IJsonWebKeyPair2020): Promise<Ed25519VerificationKey> {
     if (type !== 'JsonWebKey2020') {
       throw new TypeError(`Invalid key type: "${type}".`)
     }
@@ -303,7 +303,7 @@ export class Ed25519VerificationKey2020 extends KeyPair {
       )
     }
 
-    return Ed25519VerificationKey2020.from(inputKeyDocument)
+    return Ed25519VerificationKey.from(inputKeyDocument)
   }
 
   /**
@@ -313,13 +313,13 @@ export class Ed25519VerificationKey2020 extends KeyPair {
    * @param {Uint8Array} [options.seed] - A 32-byte array seed for a
    *   deterministic key.
    *
-   * @returns {Promise<Ed25519VerificationKey2020>} Resolves with generated
+   * @returns {Promise<Ed25519VerificationKey>} Resolves with generated
    *   public/private key pair.
    */
   static async generate({
     seed,
     ...keyPairOptions
-  }: GenerateKeyPairOptions = {}): Promise<Ed25519VerificationKey2020> {
+  }: GenerateKeyPairOptions = {}): Promise<Ed25519VerificationKey> {
     let keyObject
     if (seed) {
       keyObject = await ed25519.generateKeyPairFromSeed(seed)
@@ -336,7 +336,7 @@ export class Ed25519VerificationKey2020 extends KeyPair {
       keyObject.secretKey
     )
 
-    return new Ed25519VerificationKey2020({
+    return new Ed25519VerificationKey({
       publicKeyMultibase,
       privateKeyMultibase,
       ...keyPairOptions
@@ -344,20 +344,20 @@ export class Ed25519VerificationKey2020 extends KeyPair {
   }
 
   /**
-   * Creates an instance of Ed25519VerificationKey2020 from a key fingerprint.
+   * Creates an instance of Ed25519VerificationKey from a key fingerprint.
    *
    * @param {object} options - Options hashmap.
    * @param {string} options.fingerprint - Multibase encoded key fingerprint.
    *
-   * @returns {Ed25519VerificationKey2020} Returns key pair instance (with
+   * @returns {Ed25519VerificationKey} Returns key pair instance (with
    *   public key only).
    */
   static fromFingerprint({
     fingerprint
   }: {
     fingerprint: string
-  }): Ed25519VerificationKey2020 {
-    return new Ed25519VerificationKey2020({ publicKeyMultibase: fingerprint })
+  }): Ed25519VerificationKey {
+    return new Ed25519VerificationKey({ publicKeyMultibase: fingerprint })
   }
 
   /**
@@ -501,7 +501,7 @@ export class Ed25519VerificationKey2020 extends KeyPair {
       type: this.type
     }
     if (includeContext) {
-      exportedKey['@context'] = Ed25519VerificationKey2020.SUITE_CONTEXT
+      exportedKey['@context'] = Ed25519VerificationKey.SUITE_CONTEXT
     }
     if (this.controller) {
       exportedKey.controller = this.controller

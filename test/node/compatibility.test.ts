@@ -2,7 +2,7 @@
  * Copyright (c) 2020 Digital Bazaar, Inc. All rights reserved.
  */
 import { describe, it, expect } from 'vitest'
-import { Ed25519VerificationKey2020 } from '../../src/index.js'
+import { Ed25519VerificationKey } from '../../src/index.js'
 import * as jose from 'jose'
 
 describe('compatibility', () => {
@@ -16,7 +16,7 @@ describe('compatibility', () => {
         kty: 'OKP'
       }
 
-      const keyPair = await Ed25519VerificationKey2020.fromJsonWebKey2020({
+      const keyPair = await Ed25519VerificationKey.fromJsonWebKey2020({
         type: 'JsonWebKey2020',
         publicKeyJwk: { ...exampleJoseKey },
         privateKeyJwk: { ...exampleJoseKey }

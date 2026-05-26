@@ -1,6 +1,6 @@
 # @interop/ed25519-verification-key ChangeLog
 
-## 6.1.0 -
+## 6.1.0 - 2026-05-25
 
 ### Changed
 - **BREAKING**: Renamed the main exported class from `Ed25519VerificationKey2020` to

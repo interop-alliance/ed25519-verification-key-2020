@@ -1,9 +1,9 @@
-# Ed25519VerificationKey2020 Key Pair Library for Linked Data _(@interop/ed25519-verification-key-2020)_
+# Ed25519VerificationKey Key Pair Library for Linked Data _(@interop/ed25519-verification-key)_
 
-[![Node.js CI](https://github.com/interop-alliance/ed25519-verification-key-2020/workflows/CI/badge.svg)](https://github.com/interop-alliance/ed25519-verification-key-2020/actions?query=workflow%3A%22CI%22)
-[![NPM Version](https://img.shields.io/npm/v/@interop/ed25519-verification-key-2020.svg)](https://npm.im/@interop/ed25519-verification-key-2020)
+[![Node.js CI](https://github.com/interop-alliance/ed25519-verification-key/workflows/CI/badge.svg)](https://github.com/interop-alliance/ed25519-verification-key/actions?query=workflow%3A%22CI%22)
+[![NPM Version](https://img.shields.io/npm/v/@interop/ed25519-verification-key.svg)](https://npm.im/@interop/ed25519-verification-key)
 
-> Typescript/Javascript library for generating and working with Ed25519VerificationKey2020 key pairs, for Node.js, browser and React Native.
+> TypeScript/JavaScript library for generating and working with Ed25519 key pairs, for Node.js, browser and React Native. Supports Multikey (default), Ed25519VerificationKey2020, Ed25519VerificationKey2018, and JsonWebKey2020 serializations.
 
 ## Table of Contents
 
@@ -43,8 +43,8 @@ your system will largely depend on your design decisions.
 To install locally (for development):
 
 ```
-git clone https://github.com/interop-alliance/ed25519-verification-key-2020.git
-cd ed25519-verification-key-2020
+git clone https://github.com/interop-alliance/ed25519-verification-key.git
+cd ed25519-verification-key
 pnpm install
 ```
 
@@ -60,9 +60,9 @@ To generate a new public/private key pair:
   key.
 
 ```js
-import {Ed25519VerificationKey2020} from '@interop/ed25519-verification-key-2020';
+import {Ed25519VerificationKey} from '@interop/ed25519-verification-key';
 
-const edKeyPair = await Ed25519VerificationKey2020.generate();
+const edKeyPair = await Ed25519VerificationKey.generate();
 ```
 
 ### Importing a key pair from storage
@@ -73,7 +73,7 @@ storage, use `.from()`:
 ```js
 const serializedKeyPair = { ... };
 
-const keyPair = await Ed25519VerificationKey2020.from(serializedKeyPair);
+const keyPair = await Ed25519VerificationKey.from(serializedKeyPair);
 ````
 
 ### Exporting the public key only
@@ -157,7 +157,7 @@ In order to perform a cryptographic signature, you need to create a `sign`
 function, and then invoke it.
 
 ```js
-const keyPair = Ed25519VerificationKey2020.generate();
+const keyPair = Ed25519VerificationKey.generate();
 
 const {sign} = keyPair.signer();
 
@@ -173,7 +173,7 @@ In order to verify a cryptographic signature, you need to create a `verify`
 function, and then invoke it (passing it the data to verify, and the signature).
 
 ```js
-const keyPair = Ed25519VerificationKey2020.generate();
+const keyPair = Ed25519VerificationKey.generate();
 
 const {verify} = keyPair.verifier();
 
@@ -189,7 +189,7 @@ formats are also supported for backward compatibility and interop.
 
 ### Importing (`from()`)
 
-`Ed25519VerificationKey2020.from()` dispatches on the `type` field of the object
+`Ed25519VerificationKey.from()` dispatches on the `type` field of the object
 you pass it:
 
 | `type`                                 | Produces a key pair from ...   |
@@ -200,10 +200,10 @@ you pass it:
 | `Ed25519VerificationKey2020` (default) | a 2020 key pair                |
 
 ```js
-// All of these return an Ed25519VerificationKey2020 instance:
-const fromMultikey = await Ed25519VerificationKey2020.from({type: 'Multikey', ...});
-const from2018 = await Ed25519VerificationKey2020.from({type: 'Ed25519VerificationKey2018', ...});
-const from2020 = await Ed25519VerificationKey2020.from(serialized2020KeyPair);
+// All of these return an Ed25519VerificationKey instance:
+const fromMultikey = await Ed25519VerificationKey.from({type: 'Multikey', ...});
+const from2018 = await Ed25519VerificationKey.from({type: 'Ed25519VerificationKey2018', ...});
+const from2020 = await Ed25519VerificationKey.from(serialized2020KeyPair);
 ```
 
 ### Exporting

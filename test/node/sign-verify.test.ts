@@ -2,12 +2,12 @@
  * Copyright (c) 2020 Digital Bazaar, Inc. All rights reserved.
  */
 import { describe, it, expect } from 'vitest'
-import { Ed25519VerificationKey2020 } from '../../src/index.js'
+import { Ed25519VerificationKey } from '../../src/index.js'
 import { mockKey, suites } from './mock-data.js'
 import { stringToUint8Array } from './text-encoder.js'
 import { base58btc } from '../../src/baseX.js'
 
-const keyPair = new Ed25519VerificationKey2020({
+const keyPair = new Ed25519VerificationKey({
   controller: 'did:example:1234',
   ...mockKey
 })
@@ -51,7 +51,7 @@ describe('sign and verify', () => {
   // in a different environment
   for (const suite of suites) {
     it(suite.title, async () => {
-      const _keyPair = new Ed25519VerificationKey2020({
+      const _keyPair = new Ed25519VerificationKey({
         controller: 'did:example:1234',
         ...suite.key
       })

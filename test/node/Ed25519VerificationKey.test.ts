@@ -7,7 +7,7 @@ import { base58btc, base64url } from '../../src/baseX.js'
 import { mockKey, seed, suites } from './mock-data.js'
 import * as multibase from 'multibase'
 import * as multicodec from 'multicodec'
-import { Ed25519VerificationKey2020 } from '../../src/index.js'
+import { Ed25519VerificationKey } from '../../src/index.js'
 
 function bytesToHex(bytes: Uint8Array): string {
   return [...bytes].map(byte => byte.toString(16).padStart(2, '0')).join('')
@@ -16,14 +16,14 @@ function bytesToHex(bytes: Uint8Array): string {
 // multibase base58-btc header
 const MULTIBASE_BASE58BTC_HEADER = 'z'
 
-describe('Ed25519VerificationKey2020', () => {
+describe('Ed25519VerificationKey', () => {
   describe('class', () => {
     it('should have suite and SUITE_CONTEXT properties', async () => {
-      expect(Ed25519VerificationKey2020).toHaveProperty(
+      expect(Ed25519VerificationKey).toHaveProperty(
         'suite',
         'Ed25519VerificationKey2020'
       )
-      expect(Ed25519VerificationKey2020).toHaveProperty(
+      expect(Ed25519VerificationKey).toHaveProperty(
         'SUITE_CONTEXT',
         'https://w3id.org/security/suites/ed25519-2020/v1'
       )
@@ -35,7 +35,7 @@ describe('Ed25519VerificationKey2020', () => {
       const { publicKeyMultibase } = mockKey
       const controller = 'did:example:1234'
 
-      const keyPair = new Ed25519VerificationKey2020({
+      const keyPair = new Ed25519VerificationKey({
         controller,
         publicKeyMultibase
       })
@@ -47,7 +47,7 @@ describe('Ed25519VerificationKey2020', () => {
     it('should error if publicKeyMultibase property is missing', async () => {
       let error: unknown
       try {
-        new Ed25519VerificationKey2020({})
+        new Ed25519VerificationKey({})
       } catch (err: unknown) {
         error = err
       }
@@ -60,10 +60,10 @@ describe('Ed25519VerificationKey2020', () => {
 
   describe('generate', () => {
     it('should generate a key pair', async () => {
-      let ldKeyPair: Ed25519VerificationKey2020 | undefined
+      let ldKeyPair: Ed25519VerificationKey | undefined
       let error: unknown
       try {
-        ldKeyPair = await Ed25519VerificationKey2020.generate()
+        ldKeyPair = await Ed25519VerificationKey.generate()
       } catch (err: unknown) {
         error = err
       }
@@ -85,8 +85,8 @@ describe('Ed25519VerificationKey2020', () => {
     it('should generate the same key from the same seed', async () => {
       const seed = new Uint8Array(32)
       seed.fill(0x01)
-      const keyPair1 = await Ed25519VerificationKey2020.generate({ seed })
-      const keyPair2 = await Ed25519VerificationKey2020.generate({ seed })
+      const keyPair1 = await Ed25519VerificationKey.generate({ seed })
+      const keyPair2 = await Ed25519VerificationKey.generate({ seed })
       expect(keyPair1.publicKeyMultibase).toBe(keyPair2.publicKeyMultibase)
       expect(keyPair1.privateKeyMultibase).toBe(keyPair2.privateKeyMultibase)
     })
@@ -95,7 +95,7 @@ describe('Ed25519VerificationKey2020', () => {
   describe('export (Multikey)', () => {
     it('should export as Multikey by default', async () => {
       const seedBytes = new TextEncoder().encode(seed).slice(0, 32)
-      const keyPair = await Ed25519VerificationKey2020.generate({
+      const keyPair = await Ed25519VerificationKey.generate({
         seed: seedBytes,
         controller: 'did:example:1234'
       })
@@ -115,7 +115,7 @@ describe('Ed25519VerificationKey2020', () => {
 
     it('should export a canonical 32-byte secret when canonicalize is true', async () => {
       const seedBytes = new TextEncoder().encode(seed).slice(0, 32)
-      const keyPair = await Ed25519VerificationKey2020.generate({
+      const keyPair = await Ed25519VerificationKey.generate({
         seed: seedBytes,
         controller: 'did:example:1234'
       })
@@ -134,7 +134,7 @@ describe('Ed25519VerificationKey2020', () => {
     })
 
     it('default export() args include publicKey and context', async () => {
-      const keyPair = await Ed25519VerificationKey2020.generate({
+      const keyPair = await Ed25519VerificationKey.generate({
         id: 'did:ex:123#test-id'
       })
       const exported = keyPair.export()
@@ -152,7 +152,7 @@ describe('Ed25519VerificationKey2020', () => {
     it('should export id, type and key material', async () => {
       // Encoding returns a 64 byte Uint8Array, seed needs to be 32 bytes
       const seedBytes = new TextEncoder().encode(seed).slice(0, 32)
-      const keyPair = await Ed25519VerificationKey2020.generate({
+      const keyPair = await Ed25519VerificationKey.generate({
         seed: seedBytes,
         controller: 'did:example:1234'
       })
@@ -185,7 +185,7 @@ describe('Ed25519VerificationKey2020', () => {
     })
 
     it('should only export public key if specified', async () => {
-      const keyPair = await Ed25519VerificationKey2020.generate({
+      const keyPair = await Ed25519VerificationKey.generate({
         id: 'did:ex:123#test-id'
       })
       const exported = keyPair.toVerificationKey2020({ publicKey: true })
@@ -200,10 +200,10 @@ describe('Ed25519VerificationKey2020', () => {
 
   describe('static fromFingerprint', () => {
     it('should round-trip load keys', async () => {
-      const keyPair = await Ed25519VerificationKey2020.generate()
+      const keyPair = await Ed25519VerificationKey.generate()
       const fingerprint = keyPair.fingerprint()
 
-      const newKey = Ed25519VerificationKey2020.fromFingerprint({ fingerprint })
+      const newKey = Ed25519VerificationKey.fromFingerprint({ fingerprint })
       expect(newKey.publicKeyMultibase).toBe(keyPair.publicKeyMultibase)
     })
   })
@@ -212,7 +212,7 @@ describe('Ed25519VerificationKey2020', () => {
     it('should round-trip load exported keys (2020 format)', async () => {
       // Encoding returns a 64 byte uint8array, seed needs to be 32 bytes
       const seedBytes = new TextEncoder().encode(seed).slice(0, 32)
-      const keyPair = await Ed25519VerificationKey2020.generate({
+      const keyPair = await Ed25519VerificationKey.generate({
         seed: seedBytes,
         controller: 'did:example:1234'
       })
@@ -220,7 +220,7 @@ describe('Ed25519VerificationKey2020', () => {
         publicKey: true,
         privateKey: true
       })
-      const imported = await Ed25519VerificationKey2020.from(exported)
+      const imported = await Ed25519VerificationKey.from(exported)
 
       expect(
         imported.toVerificationKey2020({ publicKey: true, privateKey: true })
@@ -228,7 +228,7 @@ describe('Ed25519VerificationKey2020', () => {
     })
 
     it('should round-trip via Multikey export from() to sign/verify', async () => {
-      const keyPair = await Ed25519VerificationKey2020.generate({
+      const keyPair = await Ed25519VerificationKey.generate({
         controller: 'did:example:multikey'
       })
       // Export as Multikey (default 64-byte secret)
@@ -236,7 +236,7 @@ describe('Ed25519VerificationKey2020', () => {
       expect(multikeyDoc.type).toBe('Multikey')
 
       // Re-import via from()
-      const imported = await Ed25519VerificationKey2020.from(multikeyDoc)
+      const imported = await Ed25519VerificationKey.from(multikeyDoc)
       expect(imported.publicKeyMultibase).toBe(keyPair.publicKeyMultibase)
 
       // Confirm sign/verify works after the 32 to 64 byte re-concat
@@ -248,7 +248,7 @@ describe('Ed25519VerificationKey2020', () => {
     })
 
     it('from() ingests a Multikey document with 64-byte legacy secret', async () => {
-      const keyPair = await Ed25519VerificationKey2020.generate({
+      const keyPair = await Ed25519VerificationKey.generate({
         controller: 'did:example:legacy'
       })
       // Build a legacy Multikey document by reusing the internal 64-byte
@@ -262,7 +262,7 @@ describe('Ed25519VerificationKey2020', () => {
       const secretMulticodec = base58btc.decode(legacyMultikey.secretKeyMultibase.slice(1))
       expect(secretMulticodec.length).toBe(66) // 2 header + 64
 
-      const imported = await Ed25519VerificationKey2020.from(legacyMultikey)
+      const imported = await Ed25519VerificationKey.from(legacyMultikey)
       const data = new TextEncoder().encode('legacy multikey test')
       const signature = await imported.signer().sign({ data })
       const result = await keyPair.verifier().verify({ data, signature })
@@ -270,13 +270,13 @@ describe('Ed25519VerificationKey2020', () => {
     })
 
     it('from() with Multikey ingests public-key-only documents', async () => {
-      const keyPair = await Ed25519VerificationKey2020.generate({
+      const keyPair = await Ed25519VerificationKey.generate({
         controller: 'did:example:pubonly'
       })
       const publicOnlyMultikey = keyPair.export({ publicKey: true })
       expect(publicOnlyMultikey.secretKeyMultibase).toBeUndefined()
 
-      const imported = await Ed25519VerificationKey2020.from(publicOnlyMultikey)
+      const imported = await Ed25519VerificationKey.from(publicOnlyMultikey)
       expect(imported.publicKeyMultibase).toBe(keyPair.publicKeyMultibase)
       expect(imported.privateKeyMultibase).toBeUndefined()
     })
@@ -291,7 +291,7 @@ describe('Ed25519VerificationKey2020', () => {
       'YSHtLBPX1BXiTtMqTwen7MKgQfbMpm6N6vgDc7VDF9'
 
     it('produces a known-answer signature and verifies it', async () => {
-      const keyPair = await Ed25519VerificationKey2020.from({
+      const keyPair = await Ed25519VerificationKey.from({
         controller: 'did:example:1234',
         ...mockKey
       })
@@ -311,7 +311,7 @@ describe('Ed25519VerificationKey2020', () => {
     })
 
     it('fails to verify if the signed data is changed', async () => {
-      const keyPair = await Ed25519VerificationKey2020.from({
+      const keyPair = await Ed25519VerificationKey.from({
         controller: 'did:example:1234',
         ...mockKey
       })
@@ -329,7 +329,7 @@ describe('Ed25519VerificationKey2020', () => {
     // (node, browser) to lock cross-platform interop.
     for (const suite of suites) {
       it(suite.title, async () => {
-        const keyPair = await Ed25519VerificationKey2020.from({
+        const keyPair = await Ed25519VerificationKey.from({
           controller: 'did:example:1234',
           ...suite.key
         })
@@ -343,14 +343,14 @@ describe('Ed25519VerificationKey2020', () => {
 
   describe('fingerprint', () => {
     it('should create an Ed25519 key fingerprint', async () => {
-      const keyPair = await Ed25519VerificationKey2020.generate()
+      const keyPair = await Ed25519VerificationKey.generate()
       const fingerprint = keyPair.fingerprint()
       expect(typeof fingerprint).toBe('string')
       expect(fingerprint.startsWith('z')).toBe(true)
     })
 
     it('should be properly multicodec encoded', async () => {
-      const keyPair = await Ed25519VerificationKey2020.generate()
+      const keyPair = await Ed25519VerificationKey.generate()
       const fingerprint = keyPair.fingerprint()
       const mcPubkeyBytes = multibase.decode(fingerprint)
       const mcType = multicodec.getCodec(mcPubkeyBytes)
@@ -369,7 +369,7 @@ describe('Ed25519VerificationKey2020', () => {
 
   describe('verify fingerprint', () => {
     it('should verify a valid fingerprint', async () => {
-      const keyPair = await Ed25519VerificationKey2020.generate()
+      const keyPair = await Ed25519VerificationKey.generate()
       const fingerprint = keyPair.fingerprint()
       const result = keyPair.verifyFingerprint({ fingerprint })
       expect(result).toBeDefined()
@@ -379,7 +379,7 @@ describe('Ed25519VerificationKey2020', () => {
     })
 
     it('should reject an improperly encoded fingerprint', async () => {
-      const keyPair = await Ed25519VerificationKey2020.generate()
+      const keyPair = await Ed25519VerificationKey.generate()
       const fingerprint = keyPair.fingerprint()
       const result = keyPair.verifyFingerprint({
         fingerprint: fingerprint.slice(1)
@@ -395,7 +395,7 @@ describe('Ed25519VerificationKey2020', () => {
     })
 
     it('should reject an invalid fingerprint', async () => {
-      const keyPair = await Ed25519VerificationKey2020.generate()
+      const keyPair = await Ed25519VerificationKey.generate()
       const fingerprint = keyPair.fingerprint()
       // reverse the valid fingerprint
       const t = fingerprint.slice(1).split('').reverse().join('')
@@ -412,7 +412,7 @@ describe('Ed25519VerificationKey2020', () => {
     })
 
     it('should reject an improperly encoded fingerprint', async () => {
-      const keyPair = await Ed25519VerificationKey2020.generate()
+      const keyPair = await Ed25519VerificationKey.generate()
       const result = keyPair.verifyFingerprint({ fingerprint: 'zTESTSTRNG' })
       expect(result).toBeDefined()
       expect(result.verified).toBeDefined()
@@ -427,8 +427,8 @@ describe('Ed25519VerificationKey2020', () => {
     it('generates the same fingerprint from the same seed', async () => {
       const seed = new Uint8Array(32)
       seed.fill(0x01)
-      const keyPair1 = await Ed25519VerificationKey2020.generate({ seed })
-      const keyPair2 = await Ed25519VerificationKey2020.generate({ seed })
+      const keyPair1 = await Ed25519VerificationKey.generate({ seed })
+      const keyPair2 = await Ed25519VerificationKey.generate({ seed })
       const fingerprint = keyPair1.fingerprint()
       const fingerprint2 = keyPair2.fingerprint()
       const result = keyPair2.verifyFingerprint({ fingerprint })
@@ -449,7 +449,7 @@ describe('Ed25519VerificationKey2020', () => {
     }
 
     it('round-trips publicKeyJwk through from() and toJwk()', async () => {
-      const key = await Ed25519VerificationKey2020.from({
+      const key = await Ed25519VerificationKey.from({
         type: 'JsonWebKey2020',
         controller: 'did:example:123',
         publicKeyJwk
@@ -458,7 +458,7 @@ describe('Ed25519VerificationKey2020', () => {
     })
 
     it('preserves id and controller when importing publicKeyJwk', async () => {
-      const key = await Ed25519VerificationKey2020.from({
+      const key = await Ed25519VerificationKey.from({
         type: 'JsonWebKey2020',
         id: 'urn:id:1#0',
         controller: 'urn:id:1',
@@ -491,7 +491,7 @@ describe('Ed25519VerificationKey2020', () => {
       const rfcX = '11qYAYKxCrfVS_7TyWQHOg7hcvPapiMlrwIaaPcHURo'
       const expectedMultibase =
         'z6MktwupdmLXVVqTzCw4i46r4uGyosGXRnR3XjN4Zq7oMMsw'
-      const key = await Ed25519VerificationKey2020.from({
+      const key = await Ed25519VerificationKey.from({
         type: 'JsonWebKey2020',
         controller: 'did:example:123',
         publicKeyJwk: { kty: 'OKP', crv: 'Ed25519', x: rfcX }
@@ -504,7 +504,7 @@ describe('Ed25519VerificationKey2020', () => {
       // Generate a key, export its JWK, and confirm jose decodes the same
       // public key bytes -- this is the interop a self-consistent but
       // non-standard codec silently breaks.
-      const key = await Ed25519VerificationKey2020.generate()
+      const key = await Ed25519VerificationKey.generate()
       const exportedJwk = key.toJwk({ publicKey: true, privateKey: true })
 
       const josePublicJwk = await jose.exportJWK(
@@ -522,13 +522,13 @@ describe('Ed25519VerificationKey2020', () => {
     })
 
     it('round-trips through JsonWebKey2020 serialization', async () => {
-      const key = await Ed25519VerificationKey2020.from({
+      const key = await Ed25519VerificationKey.from({
         type: 'JsonWebKey2020',
         controller: 'did:example:123',
         publicKeyJwk
       })
       const exported = await key.toJsonWebKey2020()
-      const reimported = await Ed25519VerificationKey2020.from(exported)
+      const reimported = await Ed25519VerificationKey.from(exported)
 
       expect(await reimported.toJsonWebKey2020()).toEqual(exported)
       // id is the JWK thumbprint encoded as a hash fragment of the controller

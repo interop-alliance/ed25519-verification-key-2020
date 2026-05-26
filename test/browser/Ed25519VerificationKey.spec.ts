@@ -1,16 +1,16 @@
 import { test, expect } from '@playwright/test'
 
-test('Ed25519VerificationKey2020 generates keys in browser', async ({
+test('Ed25519VerificationKey generates keys in browser', async ({
   page
 }) => {
   await page.goto('/test/index.html')
   const result = await page.evaluate(async () => {
-    const { Ed25519VerificationKey2020 } = await import('/src/index.ts')
-    const keyPair = await Ed25519VerificationKey2020.generate()
+    const { Ed25519VerificationKey } = await import('/src/index.ts')
+    const keyPair = await Ed25519VerificationKey.generate()
     return {
       publicKey: keyPair.publicKeyMultibase,
       hasPrivateKey: !!keyPair.privateKeyMultibase,
-      suite: Ed25519VerificationKey2020.suite
+      suite: Ed25519VerificationKey.suite
     }
   })
   expect(result.publicKey).toMatch(/^z/)
@@ -18,13 +18,13 @@ test('Ed25519VerificationKey2020 generates keys in browser', async ({
   expect(result.suite).toBe('Ed25519VerificationKey2020')
 })
 
-test('Ed25519VerificationKey2020 signs and verifies in browser', async ({
+test('Ed25519VerificationKey signs and verifies in browser', async ({
   page
 }) => {
   await page.goto('/test/index.html')
   const result = await page.evaluate(async () => {
-    const { Ed25519VerificationKey2020 } = await import('/src/index.ts')
-    const keyPair = await Ed25519VerificationKey2020.generate({
+    const { Ed25519VerificationKey } = await import('/src/index.ts')
+    const keyPair = await Ed25519VerificationKey.generate({
       controller: 'did:example:test'
     })
     const signer = keyPair.signer()

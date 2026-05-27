@@ -28,6 +28,10 @@ describe('Ed25519VerificationKey', () => {
         'https://w3id.org/security/suites/ed25519-2020/v1'
       )
     })
+
+    it('should have a multibaseHeader property', async () => {
+      expect(Ed25519VerificationKey).toHaveProperty('multibaseHeader', 'z6Mk')
+    })
   })
 
   describe('constructor', () => {

@@ -27,6 +27,9 @@ const MULTICODEC_ED25519_PUB_HEADER = new Uint8Array([0xed, 0x01])
 const MULTICODEC_ED25519_PRIV_HEADER = new Uint8Array([0x80, 0x26])
 const MULTIKEY_CONTEXT_V1_URL = 'https://w3id.org/security/multikey/v1'
 
+// for ed25519 keys, @see https://www.w3.org/TR/cid-1.0/#Multikey
+const MULTIBASE_MULTIKEY_PREFIX = 'z6Mk'
+
 export interface GenerateKeyPairOptions extends IKeyPairCore {
   seed?: Uint8Array
 }
@@ -38,6 +41,9 @@ export class Ed25519VerificationKey extends KeyPair {
 
   // Used by CryptoLD harness for dispatching.
   static suite: string = SUITE_ID
+  // Used by `@interop/did-io` and `@interop/did-method-key` drivers
+  //   for registering supported methods via `use()`
+  static multibaseHeader: string = MULTIBASE_MULTIKEY_PREFIX
 
   publicKeyMultibase: string
   privateKeyMultibase?: string
